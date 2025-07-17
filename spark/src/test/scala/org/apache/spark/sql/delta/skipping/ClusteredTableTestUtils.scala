@@ -17,7 +17,6 @@
 package org.apache.spark.sql.delta.skipping
 
 import org.apache.spark.sql.delta.skipping.clustering.{ClusteredTableUtils, ClusteringColumn, ClusteringColumnInfo}
-import org.apache.spark.sql.delta.skipping.clustering.temp.ClusterBySpec
 import org.apache.spark.sql.delta.{DeltaLog, Snapshot}
 import org.apache.spark.sql.delta.DeltaOperations
 import org.apache.spark.sql.delta.DeltaOperations.{CLUSTERING_PARAMETER_KEY, ZORDER_PARAMETER_KEY}
@@ -31,6 +30,7 @@ import org.junit.Assert.assertEquals
 import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.TableIdentifier
+import org.apache.spark.sql.catalyst.catalog.ClusterBySpec
 import org.apache.spark.sql.test.SharedSparkSession
 import org.apache.spark.util.Utils
 

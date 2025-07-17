@@ -19,7 +19,6 @@ package io.delta.sql.parser
 import io.delta.tables.execution.VacuumTableCommand
 
 import org.apache.spark.sql.delta.skipping.clustering.ClusteredTableUtils
-import org.apache.spark.sql.delta.skipping.clustering.temp.ClusterByTransform
 
 import org.apache.spark.sql.delta.CloneTableSQLTestUtils
 import org.apache.spark.sql.delta.DeltaTestUtils.BOOLEAN_DOMAIN
@@ -33,6 +32,7 @@ import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.SQLHelper
 import org.apache.spark.sql.catalyst.plans.logical.{AlterTableDropFeature, CloneTableStatement, CreateTable, CreateTableAsSelect, LogicalPlan, ReplaceTable, ReplaceTableAsSelect, RestoreTableStatement}
+import org.apache.spark.sql.connector.expressions.ClusterByTransform
 import org.apache.spark.sql.execution.SparkSqlParser
 
 class DeltaSqlParserSuite extends SparkFunSuite with SQLHelper {
