@@ -25,7 +25,6 @@ import scala.collection.mutable
 import org.apache.spark.sql.delta.ClassicColumnConversions._
 import org.apache.spark.sql.delta.DataFrameUtils
 import org.apache.spark.sql.delta.skipping.clustering.{ClusteredTableUtils, ClusteringColumnInfo}
-import org.apache.spark.sql.delta.skipping.clustering.temp.ClusterBySpec
 import org.apache.spark.sql.delta._
 import org.apache.spark.sql.delta.commands.WriteIntoDelta
 import org.apache.spark.sql.delta.commands.cdc.CDCReader
@@ -39,7 +38,7 @@ import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.analysis.{ResolvedTable, UnresolvedTable}
 import org.apache.spark.sql.catalyst.analysis.UnresolvedTableImplicits._
-import org.apache.spark.sql.catalyst.catalog.{CatalogTable, CatalogTableType, CatalogUtils}
+import org.apache.spark.sql.catalyst.catalog.{CatalogTable, CatalogTableType, CatalogUtils, ClusterBySpec}
 import org.apache.spark.sql.catalyst.plans.logical.{AnalysisHelper, LogicalPlan, SubqueryAlias}
 import org.apache.spark.sql.catalyst.types.DataTypeUtils.toAttributes
 import org.apache.spark.sql.connector.catalog.{SupportsWrite, Table, TableCapability, TableCatalog, V2TableWithV1Fallback}
@@ -258,9 +257,8 @@ class DeltaTableV2 private(
     // Don't use [[PROP_CLUSTERING_COLUMNS]] from CatalogTable because it may be stale.
     // Since ALTER TABLE updates it using an async post-commit hook.
     clusterBySpec.foreach { clusterBy =>
-      ClusterBySpec.toProperties(clusterBy).foreach { case (key, value) =>
-        base.put(key, value)
-      }
+      val clusterProp = ClusterBySpec.toPropertyWithoutValidation(clusterBy)
+      base.put(clusterProp._1, clusterProp._2)
     }
     Option(initialSnapshot.metadata.description).foreach(base.put(TableCatalog.PROP_COMMENT, _))
     base.asJava

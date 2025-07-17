@@ -16,7 +16,6 @@
 
 package org.apache.spark.sql.delta.skipping.clustering
 
-import org.apache.spark.sql.delta.skipping.clustering.temp.ClusterBySpec
 import org.apache.spark.sql.delta.{ClusteringTableFeature, DeltaColumnMappingMode, DeltaErrors, DeltaLog, OptimisticTransaction, Snapshot}
 import org.apache.spark.sql.delta.actions.{Action, DomainMetadata, Metadata, Protocol, TableFeatureProtocolUtils}
 import org.apache.spark.sql.delta.clustering.ClusteringMetadataDomain
@@ -27,7 +26,7 @@ import org.apache.spark.sql.delta.stats.{DeltaStatistics, SkippingEligibleDataTy
 import org.apache.spark.sql.delta.util.{Utils => DeltaUtils}
 
 import org.apache.spark.sql.{AnalysisException, SparkSession}
-import org.apache.spark.sql.catalyst.catalog.CatalogTable
+import org.apache.spark.sql.catalyst.catalog.{CatalogTable, ClusterBySpec}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.{StructField, StructType}
 
@@ -80,7 +79,7 @@ trait ClusteredTableUtilsBase extends DeltaLogging {
    */
   def getClusteringColumnsAsProperty(
       maybeClusterBySpec: Option[ClusterBySpec]): Option[(String, String)] = {
-    maybeClusterBySpec.map(ClusterBySpec.toProperty)
+    maybeClusterBySpec.map(ClusterBySpec.toPropertyWithoutValidation)
   }
 
   /**

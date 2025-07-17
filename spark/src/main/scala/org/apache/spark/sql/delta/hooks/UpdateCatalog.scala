@@ -25,7 +25,6 @@ import scala.util.Try
 import scala.util.control.NonFatal
 
 import org.apache.spark.sql.delta.skipping.clustering.{ClusteredTableUtils, ClusteringColumnInfo}
-import org.apache.spark.sql.delta.skipping.clustering.temp.ClusterBySpec
 import org.apache.spark.sql.delta.{CommittedTransaction, DeltaConfigs, DeltaTableIdentifier, Snapshot}
 import org.apache.spark.sql.delta.actions.Metadata
 import org.apache.spark.sql.delta.logging.DeltaLogKeys
@@ -38,7 +37,7 @@ import org.apache.spark.internal.MDC
 import org.apache.spark.internal.config.ConfigEntry
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.catalog.CatalogTable
+import org.apache.spark.sql.catalyst.catalog.{CatalogTable, ClusterBySpec}
 import org.apache.spark.sql.connector.catalog.CatalogManager.SESSION_CATALOG_NAME
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
@@ -129,8 +128,9 @@ trait UpdateCatalogBase extends PostCommitHook with DeltaLogging {
     }
     val currentLogicalClusteringNames =
       ClusteringColumnInfo.extractLogicalNames(snapshot).mkString(",")
-    val clusterBySpecOpt = ClusterBySpec.fromProperties(table.properties)
-
+    val clusterBySpecOpt = table.properties.get(ClusteredTableUtils.PROP_CLUSTERING_COLUMNS).map { clusteringColumns =>
+      ClusterBySpec.fromProperty(clusteringColumns)
+    }
     // Since we don't remove the clustering columns table property, this can't happen.
     assert(!(currentLogicalClusteringNames.nonEmpty && clusterBySpecOpt.isEmpty))
     clusterBySpecOpt.exists(_.columnNames.map(_.toString).mkString(",") !=
@@ -370,11 +370,9 @@ object UpdateCatalog {
         DeltaConfigs.METASTORE_LAST_COMMIT_TIMESTAMP -> snapshot.timestamp.toString)
     if (ClusteredTableUtils.isSupported(snapshot.protocol)) {
       val clusteringColumns = ClusteringColumnInfo.extractLogicalNames(snapshot)
-      val properties = ClusterBySpec.toProperties(
+      val clusterProp = ClusterBySpec.toPropertyWithoutValidation(
         ClusterBySpec.fromColumnNames(clusteringColumns))
-      properties.foreach { case (key, value) =>
-        newProperties += (key -> value)
-      }
+      newProperties += (clusterProp._1 -> clusterProp._2)
     }
     newProperties
   }

@@ -43,7 +43,6 @@ import java.util.Locale
 import scala.collection.JavaConverters._
 
 import org.apache.spark.sql.catalyst.TimeTravel
-import org.apache.spark.sql.delta.skipping.clustering.temp.{AlterTableClusterBy, ClusterByParserUtils, ClusterByPlan, ClusterBySpec}
 
 import org.apache.spark.sql.delta._
 import org.apache.spark.sql.delta.commands._
@@ -80,8 +79,6 @@ class DeltaSqlParser(val delegate: ParserInterface)
 
   override def parsePlan(sqlText: String): LogicalPlan = parse(sqlText) { parser =>
     builder.visit(parser.singleStatement()) match {
-      case clusterByPlan: ClusterByPlan =>
-        ClusterByParserUtils(clusterByPlan, delegate).parsePlan(sqlText)
       case plan: LogicalPlan => plan
       case _ => delegate.parsePlan(sqlText)
     }
@@ -470,33 +467,6 @@ class DeltaSqlAstBuilder extends DeltaSqlBaseBaseVisitor[AnyRef] {
   }
 
   /**
-   * Captures any CLUSTER BY clause and creates a [[ClusterByPlan]] logical plan.
-   * The plan will be used as a sentinel for DeltaSqlParser to process it further.
-   */
-  override def visitClusterBy(ctx: ClusterByContext): LogicalPlan = withOrigin(ctx) {
-    val clusterBySpecCtx = ctx.clusterBySpec.asScala.head
-    checkDuplicateClauses(ctx.clusterBySpec, "CLUSTER BY", clusterBySpecCtx)
-    val columnNames =
-      clusterBySpecCtx.interleave.asScala
-        .map(_.identifier.asScala.map(_.getText).toSeq)
-        .map(_.asInstanceOf[Seq[String]]).toSeq
-    // get CLUSTER BY clause positions.
-    val startIndex = clusterBySpecCtx.getStart.getStartIndex
-    val stopIndex = clusterBySpecCtx.getStop.getStopIndex
-
-    // get CLUSTER BY parenthesis positions.
-    val parenStartIndex = clusterBySpecCtx.LEFT_PAREN().getSymbol.getStartIndex
-    val parenStopIndex = clusterBySpecCtx.RIGHT_PAREN().getSymbol.getStopIndex
-    ClusterByPlan(
-      ClusterBySpec(columnNames),
-      startIndex,
-      stopIndex,
-      parenStartIndex,
-      parenStopIndex,
-      clusterBySpecCtx)
-  }
-
-  /**
    * Time travel the table to the given version or timestamp.
    */
   private def maybeTimeTravelChild(ctx: TemporalClauseContext, child: LogicalPlan): LogicalPlan = {
@@ -618,25 +588,6 @@ class DeltaSqlAstBuilder extends DeltaSqlBaseBaseVisitor[AnyRef] {
         "ALTER TABLE ... DROP FEATURE"),
       visitFeatureNameValue(ctx.featureName),
       truncateHistory)
-  }
-
-  /**
-   * Parse an ALTER TABLE CLUSTER BY command.
-   */
-  override def visitAlterTableClusterBy(ctx: AlterTableClusterByContext): LogicalPlan = {
-    val table =
-      UnresolvedTable(ctx.table.identifier.asScala.map(_.getText).toSeq,
-      "ALTER TABLE ... CLUSTER BY")
-    if (ctx.NONE() != null) {
-      AlterTableClusterBy(table, None)
-    } else {
-      assert(ctx.clusterBySpec() != null)
-      val columnNames =
-        ctx.clusterBySpec().interleave.asScala
-          .map(_.identifier.asScala.map(_.getText).toSeq)
-          .map(_.asInstanceOf[Seq[String]]).toSeq
-      AlterTableClusterBy(table, Some(ClusterBySpec(columnNames)))
-    }
   }
 
   protected def typedVisit[T](ctx: ParseTree): T = {

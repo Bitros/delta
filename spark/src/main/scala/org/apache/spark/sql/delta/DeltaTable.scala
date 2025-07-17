@@ -23,7 +23,6 @@ import scala.util.control.NonFatal
 import org.apache.spark.sql.delta.files.{TahoeFileIndex, TahoeLogFileIndex}
 import org.apache.spark.sql.delta.logging.DeltaLogKeys
 import org.apache.spark.sql.delta.metering.{DeltaLogging, LogThrottler}
-import org.apache.spark.sql.delta.skipping.clustering.temp.{ClusterByTransform => TempClusterByTransform}
 import org.apache.spark.sql.delta.sources.{DeltaSourceUtils, DeltaSQLConf}
 import org.apache.hadoop.fs.{FileSystem, Path}
 
@@ -39,7 +38,7 @@ import org.apache.spark.sql.catalyst.planning.NodeWithOnlyDeterministicProjectAn
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LeafNode, LogicalPlan, Project}
 import org.apache.spark.sql.catalyst.util.CharVarcharCodegenUtils
 import org.apache.spark.sql.connector.catalog.Identifier
-import org.apache.spark.sql.connector.expressions.{FieldReference, IdentityTransform}
+import org.apache.spark.sql.connector.expressions.{FieldReference, IdentityTransform, ClusterByTransform}
 import org.apache.spark.sql.execution.datasources.{FileFormat, FileIndex, HadoopFsRelation, LogicalRelation, LogicalRelationWithTable}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
@@ -564,8 +563,8 @@ object DeltaTableUtils extends PredicateHelper
     IdentityTransform(FieldReference(Seq(col)))
   }
 
-  def parseColsToClusterByTransform(cols: Seq[String]): TempClusterByTransform = {
-    TempClusterByTransform(cols.map(FieldReference(_)))
+  def parseColsToClusterByTransform(cols: Seq[String]): ClusterByTransform = {
+    ClusterByTransform(cols.map(FieldReference(_)))
   }
 
   // Workaround for withActive not being visible in io/delta.
